@@ -1,24 +1,25 @@
 import os
 from yt_dlp import YoutubeDL
 from utils.yt_utils import validate_youtube_url
+import imageio_ffmpeg as ffmpeg  # automatically provides ffmpeg executable path
 
 # Folder to save downloads
 DOWNLOADS = "downloads"
 os.makedirs(DOWNLOADS, exist_ok=True)
 
-# Path to your FFmpeg bin folder (must contain ffmpeg.exe and ffprobe.exe)
-FFMPEG_PATH = r"C:\Users\Kalhara\Downloads\ffmpeg-2025-08-25-git-1b62f9d3ae-essentials_build\ffmpeg-2025-08-25-git-1b62f9d3ae-essentials_build\bin"
+# Get FFmpeg executable path dynamically (works on local & cloud)
+FFMPEG_PATH = ffmpeg.get_ffmpeg_exe()
 
 def download_youtube(url, is_audio=True, quality="Best", progress_hook=None):
     """
     Download YouTube video/audio using yt-dlp.
-
+    
     Parameters:
     - url: str, YouTube video URL
     - is_audio: bool, True for MP3, False for MP4
     - quality: str, e.g., "Best", "1080p", "192 kbps"
     - progress_hook: optional function for GUI progress updates
-
+    
     Returns:
     - filepath of downloaded file
     """
@@ -32,17 +33,23 @@ def download_youtube(url, is_audio=True, quality="Best", progress_hook=None):
         "outtmpl": filename_template,
         "ffmpeg_location": FFMPEG_PATH,
         "progress_hooks": [progress_hook] if progress_hook else [],
-        "quiet": True,  # prevents messy console output
+        "quiet": True,
         "no_warnings": True,
+        "noplaylist": True,
+        "nocheckcertificate": True,
+        "ratelimit": None,
+        "format_sort": ["res:1080", "res:720", "res:480", "res:360", "res:240"],
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/120.0.0.0 Safari/537.36"
     }
 
     if is_audio:
-        # Extract audio bitrate safely
+        # Extract numeric bitrate safely
         try:
             bitrate = int("".join([c for c in quality if c.isdigit()]))
         except Exception:
             bitrate = 192  # default
-
         ydl_opts.update({
             "format": "bestaudio/best",
             "postprocessors": [{
@@ -67,11 +74,12 @@ def download_youtube(url, is_audio=True, quality="Best", progress_hook=None):
             "merge_output_format": "mp4",
         })
 
+    # Perform download
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
         filepath = ydl.prepare_filename(info)
 
-        # If audio → replace .webm/.m4a with .mp3
+        # Normalize extension for audio/video
         if is_audio:
             filepath = os.path.splitext(filepath)[0] + ".mp3"
         else:
