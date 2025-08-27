@@ -3,23 +3,23 @@ from yt_dlp import YoutubeDL
 from utils.yt_utils import validate_youtube_url
 import imageio_ffmpeg as ffmpeg  # automatically provides ffmpeg executable path
 
-# Folder to save downloads
-DOWNLOADS = "downloads"
+# Folder to save downloads: Windows Downloads\YouTubeDownloads
+DOWNLOADS = os.path.join(os.path.expanduser("~"), "Downloads", "YouTubeDownloads")
 os.makedirs(DOWNLOADS, exist_ok=True)
 
-# Get FFmpeg executable path dynamically (works on local & cloud)
+# Get FFmpeg executable path dynamically
 FFMPEG_PATH = ffmpeg.get_ffmpeg_exe()
 
 def download_youtube(url, is_audio=True, quality="Best", progress_hook=None):
     """
     Download YouTube video/audio using yt-dlp.
-    
+
     Parameters:
     - url: str, YouTube video URL
     - is_audio: bool, True for MP3, False for MP4
     - quality: str, e.g., "Best", "1080p", "192 kbps"
     - progress_hook: optional function for GUI progress updates
-    
+
     Returns:
     - filepath of downloaded file
     """
@@ -52,11 +52,11 @@ def download_youtube(url, is_audio=True, quality="Best", progress_hook=None):
             bitrate = 192  # default
         ydl_opts.update({
             "format": "bestaudio/best",
-            "postprocessors": [{
+            "postprocessors": [({
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "mp3",
                 "preferredquality": str(bitrate),
-            }],
+            })],
         })
     else:
         # Handle video quality safely
